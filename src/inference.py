@@ -2,13 +2,14 @@
 
 import os
 import json
-import openai
 import aiohttp
+import importlib
+import streamlit as st
 from settings import *
 
 def convert_openai_messages_to_prompt(messages: list) -> str:
     # Convert the OpenAI standard messages format into a text prompt for models which don't support it
-    prompt = "Below is a conversation between a human (user) and an AI (assistant). Please continue it by ONE ASSISTANT REPLY TEXT only, and do not add any extra comments.\n"
+    prompt = "Below is a conversation between a human (user) and an AI (assistant). Please continue the conversation by ONE REPLY only. Do not add any follow-up comments or other extra contents.\n"
     for message in messages:
         match message["role"]:
             case "user":
@@ -30,25 +31,40 @@ async def call_openai(
     except KeyError as e:
         raise RuntimeError(f"Missing environment variable: {e}")
 
+    import openai
+    importlib.reload(openai)
+    if "openai_key" in st.session_state:
+        openai.api_key = st.session_state["openai_key"]
+        openai.api_base = st.session_state["OPENAI_API_BASE"].rstrip("/")
+        openai.api_type = st.session_state["OPENAI_API_TYPE"]
+        openai.api_version = None
+    
     stream = model_settings.get("stream", False)
-    if stream:
-        async for chunk in await openai.ChatCompletion.acreate(
+    engine = model_settings.get("model_engine", None)
+    if engine is None:
+        call_func = openai.ChatCompletion.acreate(
+            model=model_settings["model_name"],
+            messages=messages,
+            max_tokens=model_settings.get("max_reply_tokens", LLM_MAX_REPLY_TOKENS),
+            stream=stream,
+            timeout=TIMEOUT,
+        )
+    else:
+        call_func = openai.ChatCompletion.acreate(
             model=model_settings["model_name"],
             engine=model_settings["model_engine"],
             messages=messages,
             max_tokens=model_settings.get("max_reply_tokens", LLM_MAX_REPLY_TOKENS),
             stream=stream,
-        ):
+            timeout=TIMEOUT,
+        )
+    if stream:
+        async for chunk in await call_func:
             content = chunk["choices"][0].get("delta", {}).get("content", None)
             if content is not None:
                 yield content
     else:
-        resp = await openai.ChatCompletion.acreate(
-            model=model_settings["model_name"],
-            engine=model_settings["model_engine"],
-            messages=messages,
-            max_tokens=model_settings.get("max_reply_tokens", LLM_MAX_REPLY_TOKENS),
-        )
+        resp = await call_func
         yield resp["choices"][0]["message"]["content"].strip()
 
 
@@ -87,14 +103,23 @@ async def call_deepinfra(
         stream=stream,
     ):
         if stream:
-            if resp.startswith("data: "):
+            if isinstance(resp, str) and resp.startswith("data: "):
                 resp = json.loads(resp.split("data: ", 1)[1])
                 content = resp.get("token", {}).get("text", None)
-                if content == "</s>":   # Special eos token
-                    break
                 if content is not None:
+                    if content == "</s>":   # Special eos token
+                        break
+                    if content.endswith("</s>"):
+                        content = content.split("</s>", 1)[0]
                     yield content
         else:
+            # Convert dictionary-typed responses into strings
+            if isinstance(resp, dict):
+                if "results" in resp:
+                    resp = resp["results"][0]["generated_text"].strip()
+                elif "generated_text" in resp:
+                    resp = resp["generated_text"].strip()
+            # Sometimes the model might return the entire prompt together with the response, we need to parse it out
             if isinstance(resp, str) and resp.startswith(prompt):
                 resp = resp.split(prompt, 1)[1]
             yield resp
@@ -116,10 +141,11 @@ async def _call_api(
             params=params,
             json=data,
         ) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"API call failed with status {resp.status}: {await resp.text()}")
             if stream:
                 async for line in resp.content:
                     chunk = line.decode("utf-8").strip()
                     yield chunk
             else:
-                res_json = await resp.json()
-                yield res_json["results"][0]["generated_text"].strip()
+                yield await resp.json()
