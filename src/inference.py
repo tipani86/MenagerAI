@@ -8,7 +8,7 @@ from settings import *
 
 def convert_openai_messages_to_prompt(messages: list) -> str:
     # Convert the OpenAI standard messages format into a text prompt for models which don't support it
-    prompt = "Below is a conversation between a human (user) and an AI (assistant). Please continue it by one reply.\n"
+    prompt = "Below is a conversation between a human (user) and an AI (assistant). Please continue it by ONE ASSISTANT REPLY TEXT only, and do not add any extra comments.\n"
     for message in messages:
         match message["role"]:
             case "user":
@@ -71,36 +71,33 @@ async def call_deepinfra(
         "Content-Type": "application/json",
     }
 
+    prompt = convert_openai_messages_to_prompt(messages)
+
     data = {
-        "input": convert_openai_messages_to_prompt(messages),
+        "input": prompt,
         "max_new_tokens": model_settings.get("max_reply_tokens", LLM_MAX_REPLY_TOKENS),
         "stream": stream,
     }
 
-    if stream:
-        async for chunk in _call_api(
-            method=method,
-            url=url,
-            headers=headers,
-            data=data,
-            stream=stream,
-        ):
-            if chunk.startswith("data: "):
-                chunk = json.loads(chunk[6:])
-                content = chunk.get("token", {}).get("text", None)
+    async for resp in _call_api(
+        method=method,
+        url=url,
+        headers=headers,
+        data=data,
+        stream=stream,
+    ):
+        if stream:
+            if resp.startswith("data: "):
+                resp = json.loads(resp.split("data: ", 1)[1])
+                content = resp.get("token", {}).get("text", None)
                 if content == "</s>":   # Special eos token
                     break
                 if content is not None:
                     yield content
-    else:
-        resp = await _call_api(
-            method=method,
-            url=url,
-            headers=headers,
-            data=data,
-            stream=stream,
-        )
-        yield resp["generated_text"].strip()
+        else:
+            if isinstance(resp, str) and resp.startswith(prompt):
+                resp = resp.split(prompt, 1)[1]
+            yield resp
 
 
 async def _call_api(
@@ -112,23 +109,17 @@ async def _call_api(
     stream: bool = False,
 ):
     async with aiohttp.ClientSession() as session:
-        if stream:
-            async with session.request(
-                method=method,
-                url=url,
-                headers=headers,
-                params=params,
-                json=data,
-            ) as resp:
+        async with session.request(
+            method=method,
+            url=url,
+            headers=headers,
+            params=params,
+            json=data,
+        ) as resp:
+            if stream:
                 async for line in resp.content:
                     chunk = line.decode("utf-8").strip()
                     yield chunk
-        else:
-            resp = await session.request(
-                method=method,
-                url=url,
-                headers=headers,
-                params=params,
-                json=data,
-            )
-            yield await resp.json()
+            else:
+                res_json = await resp.json()
+                yield res_json["results"][0]["generated_text"].strip()

@@ -1,5 +1,4 @@
 import os
-import argparse
 import asyncio
 import streamlit as st
 from inference import *
@@ -25,7 +24,7 @@ SUPPORTED_MODELS = {
         "model_name": "meta-llama/Llama-2-13b-chat-hf",
         "model_func": call_deepinfra,
         "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
-        "stream": True
+        "stream": False
     },
     "llama-2-70b": {
         "model_name": "meta-llama/Llama-2-70b-chat-hf",
@@ -33,7 +32,12 @@ SUPPORTED_MODELS = {
         "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
         "stream": True
     },
-    # "dolly-v2-12b": {"stream": False},
+    # "dolly-v2-12b": {
+    #     "model_name": "databricks/dolly-v2-12b",
+    #     "model_func": call_deepinfra,
+    #     "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
+    #     "stream": False
+    # },
     # "falcon-7b": {"stream": False},
     # "pythia-12b": {"stream": False},
     # "pythia-2.8b": {"stream": False},
@@ -80,32 +84,27 @@ async def get_reply(
             message_placeholder = st.empty()
             full_response = ""
             message_placeholder.markdown(full_response + "▌")
-            if stream:
-                async for chunk in model_settings["model_func"](
-                    messages=st.session_state.messages[messages_key],
-                    model_settings=model_settings,
-                ):
-                    if chunk is not None:
-                        full_response += chunk
+            async for resp in model_settings["model_func"](
+                messages=st.session_state.messages[messages_key],
+                model_settings=model_settings,
+            ):
+                if stream:
+                    if resp is not None:
+                        full_response += resp
                         message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-            else:
-                response = model_settings["model_func"](
-                    messages=st.session_state.messages[messages_key],
-                    model_settings=model_settings,
-                )
-                for chunk in response.split():
-                    full_response += chunk + " "
-                    message_placeholder.markdown(full_response + "▌")
-                    await asyncio.sleep(0.05)
-                message_placeholder.markdown(full_response)
+                else:
+                    for chunk in resp.split(" "):
+                        full_response += chunk + " "
+                        message_placeholder.markdown(full_response + "▌")
+                        await asyncio.sleep(0.01)
+            message_placeholder.markdown(full_response)
 
         # Add response to chat history
         st.session_state.messages[messages_key].append({"role": "assistant", "content": full_response})
 
 async def main():
     st.set_page_config(
-        page_title="MenagerAI",
+        page_title="MenagerAI - Your Model Zoo",
         page_icon="🧊",
         layout="wide",
     )
