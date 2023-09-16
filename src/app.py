@@ -168,13 +168,13 @@ async def main():
     title = "# Menager<i>AI</i> 🦙 🦅 🐑"
     with st.sidebar:
         st.header("Try for Free")
-        st.caption("Chat with up to four models for maximum 5 conversational rounds each.")
+        st.caption("Chat with up to four models for maximum 5 conversational rounds each, on me.")
         free_trial = st.button("Wow, much generous, very thanks!", disabled="n_conversations" in st.session_state or "openai_key" in st.session_state or "deepinfra_key" in st.session_state)
         st.header("Enter API keys")
-        st.caption("For unlimited use, enter your OpenAI and DeepInfra API keys below.")
+        st.caption("For unlimited use, enter your OpenAI and DeepInfra API keys below. Then it will run on your own accounts and you can use it as much as you want.")
         openai_key = st.text_input("OpenAI API key", type="password", help="Register your account and get your OpenAI API key at https://platform.openai.com")
         deepinfra_key = st.text_input("DeepInfra API key", type="password", help="Register your account and get your DeepInfra API key at https://deepinfra.com")
-        st.caption("_**Author's Note:** While I can only claim that your credentials are not stored anywhere, for maximum security, you should generate a new app-specific API key on your OpenAI account page and use it here. This way, you can deactivate the key after you don't plan to use the app anymore, and it won't affect any of your other keys/apps. You can check out the GitHub source for this app using below button:_")
+        st.caption("_**Author's Note:** While I can only claim that your credentials are not stored anywhere, for maximum security, you should generate new app-specific API keys on your accounts and use them here. This way, you can deactivate the keys after you don't plan to use the app anymore, and it won't affect any of your other keys/apps. You can check out the GitHub source for this app using below button:_")
         st.markdown('<a href="https://github.com/tipani86/MenagerAI"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/tipani86/MenagerAI?style=social"></a>', unsafe_allow_html=True)
         st.markdown('<small>Page views: <img src="https://www.cutercounter.com/hits.php?id=hexoxdck&nd=4&style=2" border="0" alt="visitor counter"></small>', unsafe_allow_html=True)
 
@@ -233,7 +233,7 @@ async def main():
                 label_visibility="collapsed",
                 height=50,
             )
-            prompt_submitted = st.form_submit_button("Send")
+            prompt_submitted = st.form_submit_button("Send", type="primary")
         if st.button("Clear all message histories"):
             st.session_state.messages = {}
 
@@ -255,6 +255,9 @@ async def main():
                     st.session_state.messages[messages_key], 
                     SUPPORTED_MODELS[model].get("avatar", None)
                 )
+
+    st.markdown("""<small><a target="_self" href="#menagerai">Back to Top</a></small>""", unsafe_allow_html=True)
+
     if "n_conversations" in st.session_state and st.session_state["n_conversations"] >= 5:
         st.stop()
 
