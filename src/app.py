@@ -209,7 +209,7 @@ async def main():
         st.session_state.messages = {}
 
     if "n_conversations" in st.session_state:
-        title += f"<small>Lite ({5 - st.session_state['n_conversations']}/5 conversations left)</small>"
+        title += f" <small>Lite ({5 - st.session_state['n_conversations']}/5 conversations left)</small>"
     st.markdown(title, unsafe_allow_html=True)
     st.markdown("Select up to four different models to compare them side-by-side:")
 
