@@ -214,7 +214,7 @@ async def main():
     st.markdown("Select up to four different models to compare them side-by-side:")
 
     # Reminder about DeepInfra's time-based models
-    st.info("Please note that although DeepInfra.com supports several more open source models not listed here (such as Dolly, Falcon), they are inference-time based instead of token based, and recently inference times have been quite extensive with them. Therefore, we have excluded them from the comparisons for now, but will keep monitoring and can add them back if cost becomes reasonable.", icon="⚠️")
+    st.info("Please note that although DeepInfra.com supports several more open source models not listed here (such as _Dolly_, _Falcon_), they are inference-time based instead of token based, and recently inference times have been quite extensive with them. Therefore, we have excluded them from the comparisons for now, but will keep monitoring and can add them back if cost becomes reasonable.", icon="⚠️")
 
     # Number of models to compare
     n_models = st.number_input("Number of models", 1, 4, 2, 1)
