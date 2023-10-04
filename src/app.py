@@ -34,12 +34,12 @@ SUPPORTED_MODELS = {
         "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
         "stream": True
     },
-    # "llama-2-13b": {
-    #     "model_name": "meta-llama/Llama-2-13b-chat-hf",
-    #     "model_func": call_deepinfra,
-    #     "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
-    #     "stream": False
-    # },
+    "llama-2-13b": {
+        "model_name": "meta-llama/Llama-2-13b-chat-hf",
+        "model_func": call_deepinfra,
+        "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
+        "stream": True
+    },
     # "dolly-v2-12b": {
     #     "model_name": "databricks/dolly-v2-12b",
     #     "model_func": call_deepinfra,
@@ -149,7 +149,7 @@ async def get_reply(
                 # Remove the previous human prompt from chat history
                 st.session_state.messages[messages_key].pop()
                 if st.button("I understand"):
-                    st.experimental_rerun()
+                    st.rerun()
                 st.stop()
 
         # Add response to chat history
@@ -189,7 +189,7 @@ async def main():
     if deepinfra_key:
         if deepinfra_key == "":
             del st.session_state["deepinfra_key"]
-            st.experimental_rerun()
+            st.rerun()
         st.session_state["deepinfra_key"] = deepinfra_key
     if "openai_key" in st.session_state and "deepinfra_key" in st.session_state:
         if "n_conversations" in st.session_state:
@@ -199,7 +199,7 @@ async def main():
     elif free_trial:
         if "n_conversations" not in st.session_state:
             st.session_state["n_conversations"] = 0
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.markdown(title, unsafe_allow_html=True)
         st.write("Please enter your API keys or press the free trial button on the sidebar to continue.")
@@ -275,7 +275,7 @@ async def main():
             coroutines.append(get_reply(columns[i], messages_key, prompt, SUPPORTED_MODELS[model]))
         st.components.v1.html(js, height=0)
         await asyncio.gather(*coroutines)
-        st.experimental_rerun()
+        st.rerun()
 
 if __name__ == "__main__":
     asyncio.run(main())
