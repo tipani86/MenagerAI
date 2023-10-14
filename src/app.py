@@ -169,7 +169,7 @@ async def main():
     with st.sidebar:
         st.header("Try for Free")
         st.caption("Chat with up to four models for maximum 5 conversational rounds each, on me.")
-        free_trial = st.button("Wow, much generous, very thanks!", disabled="n_conversations" in st.session_state or "openai_key" in st.session_state or "deepinfra_key" in st.session_state)
+        free_trial = st.button("Wow, much generous, very thanks!", type="primary", disabled="n_conversations" in st.session_state or "openai_key" in st.session_state or "deepinfra_key" in st.session_state)
         st.header("Enter API keys")
         st.caption("For unlimited use, enter your OpenAI and DeepInfra API keys below. Then it will run on your own accounts and you can use it as much as you want.")
         openai_key = st.text_input("OpenAI API key", type="password", help="Register your account and get your OpenAI API key at https://platform.openai.com")
