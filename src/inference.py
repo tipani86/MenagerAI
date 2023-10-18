@@ -94,6 +94,8 @@ async def call_deepinfra(
         "max_new_tokens": model_settings.get("max_reply_tokens", LLM_MAX_REPLY_TOKENS),
         "stream": stream,
     }
+    if "stop" in model_settings:
+        data["stop"] = model_settings["stop"]
 
     async for resp in _call_api(
         method=method,

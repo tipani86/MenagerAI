@@ -40,6 +40,13 @@ SUPPORTED_MODELS = {
         "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
         "stream": True
     },
+    "Mistral-7B-Instruct": {
+        "model_name": "mistralai/Mistral-7B-Instruct-v0.1",
+        "model_func": call_deepinfra,
+        "avatar": "https://deepinfra.com/deepinfra-logo-64.webp",
+        "stream": True,
+        "stop": ["User:", "Assistant:"]
+    },
     # "dolly-v2-12b": {
     #     "model_name": "databricks/dolly-v2-12b",
     #     "model_func": call_deepinfra,
@@ -80,6 +87,7 @@ js = f"""
 </script>
 """
 
+MOTD = "Update 2023/10/18: Mistral AI's Mistral-7B-Instruct added!\n\nPlease note that although DeepInfra.com supports several more open source models not listed here (such as _Dolly_, _Falcon_), they are inference-time based instead of token based, and recently inference times have been quite extensive with them. Therefore, we have excluded them from the comparisons for now, but will keep monitoring and can add them back if cost becomes reasonable."
 
 @st.cache_data(show_spinner=False)
 def get_css() -> str:
@@ -131,7 +139,7 @@ async def get_reply(
             try:
                 async for resp in model_settings["model_func"](
                     messages=st.session_state.messages[messages_key],
-                    model_settings=model_settings,
+                    model_settings=model_settings
                 ):
                     if stream:
                         if resp is not None:
@@ -142,6 +150,10 @@ async def get_reply(
                             full_response += chunk + " "
                             message_placeholder.markdown(full_response + "▌")
                             await asyncio.sleep(0.01)
+                # We need to strip the response of any stop sequences
+                if "stop" in model_settings:
+                    for stop in model_settings["stop"]:
+                        full_response = full_response.rstrip(stop)
                 message_placeholder.markdown(full_response)
             except Exception as e:
                 message_placeholder.empty()
@@ -211,10 +223,12 @@ async def main():
     if "n_conversations" in st.session_state:
         title += f" <small>Lite ({5 - st.session_state['n_conversations']}/5 conversations left)</small>"
     st.markdown(title, unsafe_allow_html=True)
-    st.markdown("Select up to four different models to compare them side-by-side:")
 
-    # Reminder about DeepInfra's time-based models
-    st.info("Please note that although DeepInfra.com supports several more open source models not listed here (such as _Dolly_, _Falcon_), they are inference-time based instead of token based, and recently inference times have been quite extensive with them. Therefore, we have excluded them from the comparisons for now, but will keep monitoring and can add them back if cost becomes reasonable.", icon="⚠️")
+    # Display MOTD (if exists)
+    if MOTD:
+        st.info(MOTD, icon="ℹ️")
+
+    st.markdown("Select up to four different models to compare them side-by-side:")
 
     # Number of models to compare
     n_models = st.number_input("Number of models", 1, 4, 2, 1)
