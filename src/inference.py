@@ -37,7 +37,7 @@ async def call_openai(
         openai.api_key = st.session_state["openai_key"]
         openai.api_base = st.session_state["OPENAI_API_BASE"].rstrip("/")
         openai.api_type = st.session_state["OPENAI_API_TYPE"]
-        openai.api_version = None
+        openai.api_version = "2023-12-01-preview"
     
     stream = model_settings.get("stream", False)
     engine = model_settings.get("model_engine", None)
